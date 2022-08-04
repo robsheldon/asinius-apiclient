@@ -64,10 +64,76 @@ class Inventory
 
     protected static    $_inventory_props = [];
     protected static    $_location_props  = [];
+    protected static    $_cursors         = [];
+    protected static    $_batch_size      = 100;
+
+
+    protected static function _squash_inventory (string $cursor_key, array $entries)
+    {
+        if ( ! array_key_exists($cursor_key, static::$_cursors) ) {
+            throw new RuntimeException(sprintf('Internal cursor not found: %s', Asinius::to_str($cursor_key)));
+        }
+        //  Can't guarantee the order of the elements in $entries, so squashing
+        //  them will require two passes.
+        $last = '';
+        //  Group the entries by Item_Number.
+        $squashed = [];
+        foreach ($entries as $entry) {
+            if ( ! array_key_exists($entry['Item_Number'], $squashed) ) {
+                $squashed[$entry['Item_Number']] = [];
+            }
+            $squashed[$entry['Item_Number']][] = $entry;
+            $last = $entry['Item_Number'];
+        }
+        if ( count($entries) >= static::$_batch_size ) {
+            //  Let's assume that the last item received was incomplete.
+            //  The API might have 3 locations per item, we ask for 100 results,
+            //  so we get 33 individual items and one item from a single location.
+            //  No bueno.
+            //  I have tested this approach and it seems to be working correctly
+            //  so far, but some queries might break it.
+            unset($squashed[$last]);
+        }
+        //  Squash each Item_Number group into a single item with location data
+        //  attached to it.
+        $received = 0;
+        $out = [];
+        foreach ($squashed as $item_number => $items) {
+            $item = @array_intersect_assoc(...$items);
+            $keys = array_fill_keys(array_keys($item), true);
+            $item['Locations'] = array_map(function($item) use ($keys){
+                return array_intersect_key($item, array_diff_key($item, $keys));
+            }, $items);
+            $received += count($items);
+            $out[] = $item;
+        }
+        static::$_cursors[$cursor_key]['received'] += $received;
+        return $out;
+    }
+
+
+    public static function _load_next_page (array $parameters)
+    {
+        Asinius::assert_parent('Asinius\APIClient\SalesPad\Iterator');
+        if ( ! array_key_exists('cursor', $parameters) ) {
+            throw new RuntimeException(sprintf('Did not receive a cursor key in %s', Asinius::to_str($parameters)));
+        }
+        $cursor_key = $parameters['cursor'];
+        if ( ! array_key_exists($cursor_key, static::$_cursors) ) {
+            throw new RuntimeException(sprintf('Internal cursor not found: %s', Asinius::to_str($cursor_key)));
+        }
+        static::$_cursors[$cursor_key]['parameters']['$skip'] = static::$_cursors[$cursor_key]['received'];
+        $items = SalesPad::call('/api/InventorySearch', 'GET', static::$_cursors[$cursor_key]['parameters']);
+        if ( ! array_key_exists('Items', $items) ) {
+            throw new RuntimeException('Unexpected response from server for /api/ItemMaster');
+        }
+        return static::_squash_inventory($cursor_key, $items['Items']);
+    }
+
 
     public static function search (string $query = ''): Iterator
     {
-        $parameters = ['$top' => '100'];
+        $parameters = ['$top' => sprintf('%d', static::$_batch_size)];
         if ( $query !== '' ) {
             $parameters['$filter'] = $query;
         }
@@ -76,41 +142,14 @@ class Inventory
             throw new RuntimeException('Unexpected response from server for /api/ItemMaster');
         }
         $items = $items['Items'];
-        if ( count($items) > 0 && empty(static::$_inventory_props) ) {
-            //  An additional API request needs to be made here so that ItemMaster
-            //  properties can be separated from InventorySearch properties.
-            //  Select a test item from the search results.
-            $test_item = trim($items[0]['Item_Number']);
-            $item_master = SalesPad::call('/api/ItemMaster', 'GET', ['$filter' => "Item_Number eq '$test_item'"]);
-            if ( ! array_key_exists('Items', $item_master) || count($item_master['Items']) !== 1 ) {
-                throw new RuntimeException("There was an error retreiving item $test_item from /api/ItemMaster");
-            }
-            //  This next line finds all the array keys that are present in
-            //  InventorySearch results but not ItemMaster results.
-            static::$_inventory_props = array_diff(array_keys($items[0]), array_intersect(array_keys($item_master['Items'][0]), array_keys($items[0])));
-        }
-        return new Iterator('/api/InventorySearch', $parameters, [static::class, '_new_item'], $items);
-    }
-
-
-    public static function _new_item (array $item)
-    {
-        Asinius::assert_parent('Asinius\APIClient\SalesPad\Iterator');
-        return new Item($item);
-        echo "_new_item:\n";
-        var_dump($item);
-        die();
+        //  Generate a new cursor for this result set.
+        $cursor_key = bin2hex(random_bytes(4));
+        static::$_cursors[$cursor_key] = [
+            'parameters'    => $parameters,
+            'received'      => 0,
+        ];
+        //  Return an Iterator that will call back to the Inventory class for the rest of the results.
+        return new Iterator([static::class, '_load_next_page'], ['cursor' => $cursor_key], '\Asinius\APIClient\SalesPad\Item', static::_squash_inventory($cursor_key, $items));
     }
 
 }
-
-/*
-    Here's how to fix the InventorySearch -> Iterator -> ItemMaster problem:
-
-    1. change the Iterator constructor so that $endpoint can be a callable function.
-    2. Inventory::search() will return an Iterator that's configured to call Inventory::_load_next_page()
-    3. Inventory::_load_next_page will receive $parameters (passed from the Iterator's constructor)
-        which will be something like ['cursor' => 'randomstring']
-    4. Inventory::_load_next_page will use the cursor to load up a set of stored values for the
-        request endpoint, the number of items to skip, etc., and then will proceed as normal.
- */

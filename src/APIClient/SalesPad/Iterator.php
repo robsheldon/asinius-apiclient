@@ -80,12 +80,20 @@ class Iterator implements \ArrayAccess, \Countable, \SeekableIterator
         if ( $this->_endpoint === null ) {
             return;
         }
-        $elements = SalesPad::call($this->_endpoint, 'GET', array_merge($this->_parameters, ['$skip' => $this->_received]));
-        $elements = array_intersect_key($elements, ['Items' => true]);
-        if ( empty($elements) ) {
-            throw new RuntimeException('Unhandled response from SalesPad API when requesting for the next page for ' . $this->_endpoint);
+        if ( is_string($this->_endpoint) && preg_match('|^/api/|', $this->_endpoint) === true ) {
+            $elements = SalesPad::call($this->_endpoint, 'GET', array_merge($this->_parameters, ['$skip' => $this->_received]));
+            $elements = array_intersect_key($elements, ['Items' => true]);
+            if ( empty($elements) ) {
+                throw new RuntimeException('Unhandled response from SalesPad API when requesting for the next page for ' . $this->_endpoint);
+            }
+            $elements = array_shift($elements);
         }
-        $elements = array_shift($elements);
+        else if ( is_callable($this->_endpoint) ) {
+            $elements = ($this->_endpoint)($this->_parameters);
+        }
+        else {
+            throw new RuntimeException(sprintf('Invalid endpoint: %s', Asinius::to_str($this->_endpoint)));
+        }
         if ( count($elements) === 0 ) {
             //  No more results returned.
             $this->_endpoint = null;
@@ -95,7 +103,7 @@ class Iterator implements \ArrayAccess, \Countable, \SeekableIterator
     }
 
 
-    public function __construct (string $endpoint, array $parameters, $class_or_callable, array $elements)
+    public function __construct ($endpoint, array $parameters, $class_or_callable, array $elements)
     {
         $this->_received    = 0;
         $this->_endpoint    = $endpoint;
