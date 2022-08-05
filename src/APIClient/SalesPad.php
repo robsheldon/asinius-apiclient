@@ -39,12 +39,11 @@ namespace Asinius\APIClient;
 
 use Exception, RuntimeException;
 
-/*******************************************************************************
-*                                                                              *
-*   \Asinius\APIClient\SalesPad                                                *
-*                                                                              *
-*******************************************************************************/
-
+/**
+ * \Asinius\APIClient\SalesPad
+ *
+ * Handles authentication and API requests to the remote server.
+ */
 class SalesPad
 {
 
@@ -59,6 +58,20 @@ class SalesPad
     protected static $_page_size    = 100;
 
 
+    /**
+     * Send a request to a remote SalesPad API service. This function handles some
+     * common request errors. call() will -usually- return an array parsed from a
+     * JSON response, but the server may return some other value instead.
+     *
+     * @param   string      $endpoint
+     * @param   string      $method
+     * @param   array       $parameters
+     * @param   array       $headers
+     *
+     * @throws  RuntimeException
+     *
+     * @return  mixed
+     */
     public static function call (string $endpoint, string $method = 'GET', array $parameters = [], array $headers = [])
     {
         if ( static::$_http_client === null ) {
@@ -116,10 +129,10 @@ class SalesPad
      *     The default is to request a temporary session from the server, because
      *     this doesn't require the application to manage a session key.
      *
-     * @param   string  $host_uri
-     * @param   string  $username
-     * @param   string  $password
-     * @param   int     $type
+     * @param   string      $host_uri
+     * @param   string      $username
+     * @param   string      $password
+     * @param   int         $type
      *
      * @throws  RuntimeException
      *
@@ -159,11 +172,9 @@ class SalesPad
             }
             throw new RuntimeException($e->getMessage());
         }
-        if ( is_array($session_info) ) {
-            if ( array_key_exists('SessionID', $session_info) ) {
-                static::$_session_key = $session_info['SessionID'];
-                return true;
-            }
+        if ( is_array($session_info) && array_key_exists('SessionID', $session_info) ) {
+            static::$_session_key = $session_info['SessionID'];
+            return true;
         }
         throw new RuntimeException('An unexpected response was returned from SalesPad during login');
     }
@@ -173,17 +184,17 @@ class SalesPad
      * Re-authenticate to a SalesPad server using a previous Session ID (probably
      * a permanent session ID; see notes above in ::login()).
      *
-     * @param  string   $host_uri
-     * @param  string   $session_id
+     * @param   string      $host_uri
+     * @param   string      $session_id
      *
-     * @throws RuntimeException
+     * @throws  RuntimeException
      *
-     * @return boolean
+     * @return  boolean
      */
-    public static function restart_session (string $host_uri, string $session_id)
+    public static function restart_session (string $host_uri, string $session_id): bool
     {
         if ( static::$_http_client !== null ) {
-            return;
+            return true;
         }
         static::$_http_client = \Asinius\APIClient::get_http_client();
         static::$_api_host = rtrim($host_uri, '/');
@@ -212,7 +223,7 @@ class SalesPad
      * Reset the current API connection. All further API calls will fail until
      * login() or restart_session() is called successfully.
      *
-     * @return void
+     * @return  void
      */
     public static function reset ()
     {
@@ -224,24 +235,49 @@ class SalesPad
     }
 
 
-    public static function get_session_key ()
+    /**
+     * Return the session ID for the current session.
+     *
+     * @return  string
+     */
+    public static function get_session_key () : string
     {
         return static::$_session_key;
     }
 
 
+    /**
+     * Return the last API response data from the server. This is saved by
+     * SalesPad::call() and may be converted into an array (if the server sent
+     * back a JSON response), but will be otherwise unchanged. Useful for
+     * troubleshooting.
+     *
+     * @return  mixed
+     */
     public static function get_last_api_response ()
     {
         return static::$_last_data;
     }
 
 
-    public static function get_page_size ()
+    /**
+     * Return the current "page size": the number of entries returned by each
+     * API request. May not be supported by all API calls. This should be used
+     * by other classes as the '$top' parameter sent to the API.
+     *
+     * @return  int
+     */
+    public static function get_page_size () : int
     {
         return static::$_page_size;
     }
 
 
+    /**
+     * Set the current "page size" (number of entries returned by API requests).
+     *
+     * @param   int     $page_size
+     */
     public static function set_page_size (int $page_size)
     {
         static::$_page_size = $page_size;

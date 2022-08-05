@@ -42,7 +42,7 @@ use Asinius\Asinius, Asinius\APIClient\SalesPad, RuntimeException;
 /**
  * \Asinius\APIClient\SalesPad\Item
  *
- * Encapsulate inventory items in a SalesPad database.
+ * Encapsulate products in a SalesPad database using the ItemMaster endpoint.
  */
 class Item
 {
@@ -56,9 +56,9 @@ class Item
      * Configure automatic translation of named properties in Item objects
      * returned by the SalesPad API.
      *
-     * @param  array    $fields
+     * @param   array       $fields
      *
-     * @return void
+     * @return  void
      */
     public static function map ($fields)
     {
@@ -66,6 +66,18 @@ class Item
     }
 
 
+    /**
+     * Retrieve a list of items from the API, using the ItemMaster endpoint,
+     * with an optional search query. The search query needs to be an OData
+     * query string. See also the OData section at
+     * https://portal.salespad.net/webapi/GettingStarted.
+     *
+     * @param   string      $query
+     *
+     * @throws  RuntimeException
+     *
+     * @return  Iterator
+     */
     public static function search (string $query = '')
     {
         $parameters = ['$top' => '100'];
@@ -80,22 +92,53 @@ class Item
     }
 
 
+    /**
+     * Retrieve a specific item from the ItemMaster endpoint. Returns null if
+     * the item was not found, otherwise returns an Item object.
+     *
+     * @param   string      $item_number
+     *
+     * @return  Item|null
+     */
     public static function get (string $item_number)
     {
         $items = static::search("Item_Number eq '$item_number'");
         if ( $items->count() < 1 ) {
-            throw new RuntimeException("Item $item_number was not found");
+            return null;
         }
         return $items[0];
     }
 
 
+    /**
+     * Create a new item in the remote database. This function is not yet implemented.
+     *
+     * @param   array   $values
+     *
+     * @throws  RuntimeException
+     *
+     * @return  void
+     */
     public static function create (array $values)
     {
         throw new RuntimeException(static::class . '::create() is not implemented');
     }
 
 
+    /**
+     * Set a property value in an Item object. This function handles the property
+     * name mappings defined in Item::map() and will call a callable if one is
+     * defined for the given property.
+     *
+     * @param   string      $key
+     * @param   mixed       $value
+     *
+     * @internal
+     *
+     * @throws  RuntimeException
+     *
+     * @return  void
+     */
     protected function _set_property ($key, $value)
     {
         if ( array_key_exists($key, static::$_field_maps) ) {
@@ -115,6 +158,18 @@ class Item
     }
 
 
+    /**
+     * Instantiate a new Item object using the properties described in $item_detail.
+     * At this time, no sanity-checking is done on $item_detail.
+     *
+     * This library is structured so that application code should never need to
+     * instantiate an Item object directly. For that reason, this function will
+     * throw() an exception if it isn't being called by the Iterator class.
+     *
+     * @param   array       $item_detail
+     *
+     * @return  Item
+     */
     public function __construct (array $item_detail)
     {
         Asinius::assert_parent('Asinius\APIClient\SalesPad\Iterator');
@@ -138,7 +193,7 @@ class Item
      *
      * @return mixed
      */
-    public function __get ($property)
+    public function __get (string $property)
     {
         if ( array_key_exists($property, $this->_properties) ) {
             return $this->_properties[$property];
@@ -147,7 +202,16 @@ class Item
     }
 
 
-    public function __set ($key, $value)
+    /**
+     * Set a property. This bypasses the mappings defined in Item::map() and
+     * allows applications to set arbitrary properties and values.
+     *
+     * @param   string      $key
+     * @param   mixed       $value
+     *
+     * @return  void
+     */
+    public function __set (string $key, $value)
     {
         $this->_set_property($key, $value);
     }
@@ -159,7 +223,7 @@ class Item
      *
      * @return  string
      */
-    public function __toString () : string
+    public function __toString (): string
     {
         $out = ['Item ' . $this->_id];
         $keylen = max(array_map('strlen', array_keys($this->_properties)));

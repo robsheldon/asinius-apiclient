@@ -58,6 +58,13 @@ use Asinius\Asinius, Asinius\APIClient\SalesPad, Asinius\APIClient\SalesPad\Item
  * If you don't need stock details, use the Item class. If you do, use this
  * class. This class will still need to abuse the SalesPad API, but at least
  * the application code will be a bit easier to work with.
+ *
+ * This class converts the SalesPad offset-based pagination into a cursor-
+ * based system that is tracked internally. This allows an application to
+ * make multiple (different) queries against InventorySearch simultaneously
+ * while still keeping track of the offset for each query. The unique cursor
+ * value is returned to the Iterator, and the Iterator passes the cursor value
+ * back to Inventory's page loader.
  */
 class Inventory
 {
@@ -68,6 +75,34 @@ class Inventory
     protected static    $_batch_size      = 100;
 
 
+    /**
+     * Process an array of item-and-location results from an InvenorySearch query,
+     * and convert them into an array of products with an added "Location" property
+     * that includes any values that varied from location to location for that product.
+     *
+     * This function does not instantiate any Item objects; that step is handled by
+     * the Iterator, which should be upstream in the call chain from this function.
+     *
+     * This function updates the internal $_cursors data structure with the total
+     * number of elements received from the last InventorySearch request, so that
+     * the next request for the same query will skip the correct number of records.
+     *
+     * The last product in $entries may not be included in the output because
+     * the SalesPad API service may split the same item (but at different locations)
+     * across two requests. If a full "page" of results is received, then the
+     * last item is excluded from the output (and will be the first item on the
+     * next request); if a partial "page" of results is received, then we assume
+     * that all data has been received and the last item is returned.
+     *
+     * @param   string      $cursor_key
+     * @param   array       $entries
+     *
+     * @internal
+     *
+     * @throws  RuntimeException
+     *
+     * @return  array
+     */
     protected static function _squash_inventory (string $cursor_key, array $entries)
     {
         if ( ! array_key_exists($cursor_key, static::$_cursors) ) {
@@ -112,6 +147,20 @@ class Inventory
     }
 
 
+    /**
+     * Retrieve the next page of InventorySearch results from the SalesPad API.
+     * This is an internal function and is not meant to be used by an application,
+     * although it needs to be public in scope. It will throw() a RuntimeException
+     * if it is not called by the Iterator class.
+     *
+     * @param   array       $parameters
+     *
+     * @internal
+     *
+     * @throws  RuntimeException
+     *
+     * @return  array
+     */
     public static function _load_next_page (array $parameters)
     {
         Asinius::assert_parent('Asinius\APIClient\SalesPad\Iterator');
@@ -131,6 +180,15 @@ class Inventory
     }
 
 
+    /**
+     * Execute an InventorySearch request (OData query string).
+     *
+     * @param   string      $query
+     *
+     * @throws  RuntimeException
+     *
+     * @return  Iterator
+     */
     public static function search (string $query = ''): Iterator
     {
         $parameters = ['$top' => sprintf('%d', static::$_batch_size)];

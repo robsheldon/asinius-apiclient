@@ -38,12 +38,13 @@ namespace Asinius\APIClient\SalesPad;
 
 use Asinius\Asinius, Asinius\APIClient\SalesPad, Exception, RuntimeException, OutOfBoundsException;
 
-/*******************************************************************************
-*                                                                              *
-*   \Asinius\APIClient\SalesPad\Iterator                                       *
-*                                                                              *
-*******************************************************************************/
-
+/**
+ * \Asinius\APIClient\SalesPad\Iterator
+ *
+ * Utility class that provides an iterator that can request additional pages
+ * from the SalesPad API's page-offset -based results. Just loop through elements
+ * in the Iterator and it will request additional elements from the API as needed.
+ */
 class Iterator implements \ArrayAccess, \Countable, \SeekableIterator
 {
 
@@ -55,6 +56,19 @@ class Iterator implements \ArrayAccess, \Countable, \SeekableIterator
     protected $_elements    = [];
 
 
+    /**
+     * Add a new element to the current Iterator. This will either instantiate
+     * whatever class was defined for all elements in the Iterator's constructor,
+     * or it will call a callable that was defined instead.
+     *
+     * @param   array       $elements
+     *
+     * @internal
+     *
+     * @throws  RuntimeException
+     *
+     * @return  void
+     */
     protected function _push (array $elements)
     {
         switch ($this->_call_type) {
@@ -75,6 +89,18 @@ class Iterator implements \ArrayAccess, \Countable, \SeekableIterator
     }
 
 
+    /**
+     * Retrieve the next page of results from the API request that invoked the
+     * Iterator. The request for the next page will either be handled automatically
+     * by this function, or this function will call a callable to handle the request
+     * instead.
+     *
+     * @internal
+     *
+     * @throws  RuntimeException
+     *
+     * @return  void
+     */
     protected function _load_next_page ()
     {
         if ( $this->_endpoint === null ) {
@@ -103,6 +129,35 @@ class Iterator implements \ArrayAccess, \Countable, \SeekableIterator
     }
 
 
+    /**
+     * Create a new Iterator. This is intended to be called by static functions
+     * in API-specific classes, but can be called by an application if necessary.
+     *
+     * $endpoint is either a string describing the API endpoint for the query
+     * that's generating the Iterator, or it is a callable that will handle
+     * subsequent requests instead (see also the Inventory class).
+     *
+     * $parameters is an array of whatever request paraemters should be passed
+     * to the $endpoint API or callable.
+     *
+     * $class_or_callable describes what should happen every time a new element
+     * is added to the Iterator. It can be a string describing a class, which
+     * will instantiate that class, or it can be a callable, which should return
+     * the new element.
+     *
+     * $elements is the initial list of elements to be added to the Iterator.
+     * These will be instantiated or handled by $class_or_callable before they
+     * are pushed into the Iterator.
+     *
+     * @param   mixed       $endpoint
+     * @param   array       $parameters
+     * @param   mixed       $class_or_callable
+     * @param   array       $elements
+     *
+     * @throws  RuntimeException
+     *
+     * @return  Iterator
+     */
     public function __construct ($endpoint, array $parameters, $class_or_callable, array $elements)
     {
         $this->_received    = 0;
@@ -122,24 +177,53 @@ class Iterator implements \ArrayAccess, \Countable, \SeekableIterator
     }
 
 
-    public function offsetExists (mixed $key)
+    /**
+     * offsetExists() is required for iterator objects.
+     *
+     * @param   mixed       $key
+     *
+     * @return  boolean
+     */
+    public function offsetExists ($key): bool
     {
         return array_key_exists($key, $this->_elements);
     }
 
 
-    public function &offsetGet (mixed $key)
+    /**
+     * offsetGet() is required for iterator objects.
+     *
+     * @param   mixed       $key
+     *
+     * @return  mixed
+     */
+    public function &offsetGet ($key)
     {
         return $this->_elements[$key];
     }
 
 
+    /**
+     * offsetSet() is required for iterator objects.
+     *
+     * @param   mixed       $key
+     * @param   mixed       $value
+     *
+     * @return  void
+     */
     public function offsetSet ($key, $value)
     {
         $this->_elements[$key] = $value;
     }
 
 
+    /**
+     * offsetUnset() is required for iterator objects.
+     *
+     * @param   mixed       $key
+     *
+     * @return  void
+     */
     public function offsetUnset ($key)
     {
         unset($this->_elements[$key]);
@@ -147,7 +231,7 @@ class Iterator implements \ArrayAccess, \Countable, \SeekableIterator
 
 
     /**
-     * Return the current number of elements stored in the iterator
+     * Return the current number of elements currently stored in the iterator
      * (before the next page is loaded).
      *
      * @return  int
@@ -157,11 +241,16 @@ class Iterator implements \ArrayAccess, \Countable, \SeekableIterator
         //  IMPORTANT: This will return the CURRENT count of elements stored in
         //  the iterator; it's not worth loading all available pages for a query
         //  just to return a count value, and the SalesPad API doesn't offer a
-        //  way to get a count of results for a query.
+        //  way to get a count of results for a query. (That sure would be nice!)
         return count($this->_elements);
     }
 
 
+    /**
+     * current() is required for iterator objects.
+     *
+     * @return  mixed
+     */
     public function current ()
     {
         //  Trigger the next page load if necessary.
@@ -170,6 +259,11 @@ class Iterator implements \ArrayAccess, \Countable, \SeekableIterator
     }
 
 
+    /**
+     * key() is required for iterator objects.
+     *
+     * @return  mixed
+     */
     public function key ()
     {
         if ( key($this->_elements) === null ) {
@@ -179,6 +273,11 @@ class Iterator implements \ArrayAccess, \Countable, \SeekableIterator
     }
 
 
+    /**
+     * next() is required for iterator objects.
+     *
+     * @return  mixed
+     */
     public function next ()
     {
         //  Trigger the next page load if necessary.
@@ -187,25 +286,49 @@ class Iterator implements \ArrayAccess, \Countable, \SeekableIterator
     }
 
 
+    /**
+     * prev() is required for iterator objects.
+     *
+     * @return  mixed
+     */
     public function prev ()
     {
         return prev($this->_elements);
     }
 
 
+    /**
+     * rewind() is required for iterator objects.
+     *
+     * @return  mixed
+     */
     public function rewind ()
     {
         reset($this->_elements);
     }
 
 
-    public function valid ()
+    /**
+     * valid() is required for iterator objects.
+     *
+     * @return  boolean
+     */
+    public function valid (): bool
     {
         //  Trigger the next page load if necessary.
         return $this->key() !== null;
     }
 
 
+    /**
+     * seek() is required for iterator objects.
+     *
+     * @param   int         $index
+     *
+     * @throws  RuntimeException
+     *
+     * @return  mixed
+     */
     public function seek (int $index)
     {
         if ( ! $this->offsetExists($index) ) {
@@ -224,30 +347,57 @@ class Iterator implements \ArrayAccess, \Countable, \SeekableIterator
     }
 
 
+    /**
+     * end() is required for iterator objects.
+     *
+     * @return  mixed
+     */
     public function end ()
     {
         return end($this->_elements);
     }
 
 
-    public function keys ()
+    /**
+     * Return an array of the keys in the current Iterator.
+     *
+     * @return  array
+     */
+    public function keys (): array
     {
         return keys($this->_elements);
     }
 
 
-    public function values ()
+    /**
+     * Return a simple array of the values in the current Iterator.
+     *
+     * @return  array
+     */
+    public function values (): array
     {
         return values($this->_elements);
     }
 
 
+    /**
+     * Append a new element to the Iterator.
+     *
+     * @param   mixed       $values
+     *
+     * @return  void
+     */
     public function push (...$values)
     {
         array_push($this->_elements, ...$values);
     }
 
 
+    /**
+     * Remove the last element from the Iterator and return it.
+     *
+     * @return  mixed
+     */
     public function pop ()
     {
         return array_pop($this->_elements);
