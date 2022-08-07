@@ -60,7 +60,7 @@ class Item
      *
      * @return  void
      */
-    public static function map ($fields)
+    public static function map (array $fields)
     {
         static::$_field_maps = $fields;
     }

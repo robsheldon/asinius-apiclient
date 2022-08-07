@@ -69,10 +69,7 @@ use Asinius\Asinius, Asinius\APIClient\SalesPad, Asinius\APIClient\SalesPad\Item
 class Inventory
 {
 
-    protected static    $_inventory_props = [];
-    protected static    $_location_props  = [];
     protected static    $_cursors         = [];
-    protected static    $_batch_size      = 100;
 
 
     /**
@@ -120,7 +117,7 @@ class Inventory
             $squashed[$entry['Item_Number']][] = $entry;
             $last = $entry['Item_Number'];
         }
-        if ( count($entries) >= static::$_batch_size ) {
+        if ( count($entries) >= SalesPad::get_page_size() ) {
             //  Let's assume that the last item received was incomplete.
             //  The API might have 3 locations per item, we ask for 100 results,
             //  so we get 33 individual items and one item from a single location.
@@ -191,7 +188,7 @@ class Inventory
      */
     public static function search (string $query = ''): Iterator
     {
-        $parameters = ['$top' => sprintf('%d', static::$_batch_size)];
+        $parameters = ['$top' => sprintf('%d', SalesPad::get_page_size())];
         if ( $query !== '' ) {
             $parameters['$filter'] = $query;
         }

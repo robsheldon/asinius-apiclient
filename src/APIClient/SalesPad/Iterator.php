@@ -304,7 +304,7 @@ class Iterator implements \ArrayAccess, \Countable, \SeekableIterator
      */
     public function rewind ()
     {
-        reset($this->_elements);
+        return reset($this->_elements);
     }
 
 
@@ -344,6 +344,7 @@ class Iterator implements \ArrayAccess, \Countable, \SeekableIterator
         while ( $index < $this->key() ) {
             $this->prev();
         }
+        return $this->current();
     }
 
 

@@ -97,8 +97,11 @@ class SalesPad
                 case 28:
                     throw new RuntimeException('Timeout while trying to connect to ' . static::$_api_host, $e->getCode());
                 default:
-                    throw new RuntimeException($e->getMessage(), $e->getCode());
+                    throw $e;
             }
+        }
+        if ( $response->empty() ) {
+            throw new RuntimeException('The server returned an empty response (no headers or body)');
         }
         static::$_last_data = $response->body;
         switch ($response->content_type) {
@@ -138,7 +141,7 @@ class SalesPad
      *
      * @return  boolean
      */
-    public static function login (string $host_uri, string $username, string $password, int $type = SalesPad::SESSION_TEMPORARY)
+    public static function login (string $host_uri, string $username, string $password, int $type = SalesPad::SESSION_TEMPORARY): bool
     {
         if ( static::$_http_client !== null ) {
             return true;
@@ -167,10 +170,13 @@ class SalesPad
         try {
             $session_info = static::call($endpoint, 'GET', [], ['Authorization' => "Basic $auth_string"]);
         } catch (Exception $e) {
+            if ( is_string(static::$_last_data) ) {
+                throw $e;
+            }
             if ( static::$_last_data->response_code === 401 ) {
                 throw new RuntimeException('Incorrect username or password during login()');
             }
-            throw new RuntimeException($e->getMessage());
+            throw $e;
         }
         if ( is_array($session_info) && array_key_exists('SessionID', $session_info) ) {
             static::$_session_key = $session_info['SessionID'];
@@ -202,10 +208,13 @@ class SalesPad
         try {
             $ping_reply = static::call('/api/Session/Ping');
         } catch (Exception $e) {
+            if ( is_string(static::$_last_data) ) {
+                throw $e;
+            }
             if ( static::$_last_data->response_code === 401 ) {
                 throw new RuntimeException("Your Session ID is not valid or has expired");
             }
-            throw new RuntimeException($e->getMessage());
+            throw $e;
         }
         if ( is_array($ping_reply) ) {
             if ( $ping_reply === ['StatusCode' => 'OK', 'ErrorCode' => 0, 'ErrorCodeMessage' => 'No Error', 'Messages' => ['Session is active']] ) {
@@ -240,7 +249,7 @@ class SalesPad
      *
      * @return  string
      */
-    public static function get_session_key () : string
+    public static function get_session_key (): string
     {
         return static::$_session_key;
     }
@@ -267,7 +276,7 @@ class SalesPad
      *
      * @return  int
      */
-    public static function get_page_size () : int
+    public static function get_page_size (): int
     {
         return static::$_page_size;
     }
