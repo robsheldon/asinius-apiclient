@@ -237,7 +237,7 @@ class Iterator implements ArrayAccess, Countable, SeekableIterator
      *
      * @return  int
      */
-    public function count (): integer
+    public function count (): int
     {
         //  IMPORTANT: This will return the CURRENT count of elements stored in
         //  the iterator; it's not worth loading all available pages for a query
