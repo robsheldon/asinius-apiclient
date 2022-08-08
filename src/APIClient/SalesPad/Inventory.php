@@ -37,7 +37,10 @@
 
 namespace Asinius\APIClient\SalesPad;
 
-use Asinius\Asinius, Asinius\APIClient\SalesPad, Asinius\APIClient\SalesPad\Item, RuntimeException;
+use Exception, RuntimeException;
+use Asinius\Asinius;
+use Asinius\APIClient\SalesPad;
+
 
 /**
  * \Asinius\APIClient\SalesPad\Inventory
@@ -100,7 +103,7 @@ class Inventory
      *
      * @return  array
      */
-    protected static function _squash_inventory (string $cursor_key, array $entries)
+    protected static function _squash_inventory (string $cursor_key, array $entries): array
     {
         if ( ! array_key_exists($cursor_key, static::$_cursors) ) {
             throw new RuntimeException(sprintf('Internal cursor not found: %s', Asinius::to_str($cursor_key)));
@@ -158,7 +161,7 @@ class Inventory
      *
      * @return  array
      */
-    public static function _load_next_page (array $parameters)
+    public static function _load_next_page (array $parameters): array
     {
         Asinius::assert_parent('Asinius\APIClient\SalesPad\Iterator');
         if ( ! array_key_exists('cursor', $parameters) ) {
@@ -182,7 +185,7 @@ class Inventory
      *
      * @param   string      $query
      *
-     * @throws  RuntimeException
+     * @throws  Exception|RuntimeException
      *
      * @return  Iterator
      */
@@ -207,4 +210,26 @@ class Inventory
         return new Iterator([static::class, '_load_next_page'], ['cursor' => $cursor_key], '\Asinius\APIClient\SalesPad\Item', static::_squash_inventory($cursor_key, $items));
     }
 
+
+    /**
+     * Retrieve a specific item from the InventorySearch endpoint. Returns null
+     * if the item was not found, otherwise returns an Item object.
+     *
+     * @param   string      $item_number
+     *
+     * @throws  Exception|RuntimeException
+     *
+     * @return  Item|null
+     */
+    public static function get (string $item_number)
+    {
+        $items = static::search("Item_Number eq '$item_number'");
+        if ( $items->count() < 1 ) {
+            return null;
+        }
+        if ( $items->count() > 1 ) {
+            throw new RuntimeException(sprintf('Failed to squash InventorySearch results for Item_Number %s', Asinius::to_str($item_number)));
+        }
+        return $items[0];
+    }
 }

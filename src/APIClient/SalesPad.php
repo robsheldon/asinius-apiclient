@@ -38,6 +38,7 @@
 namespace Asinius\APIClient;
 
 use Exception, RuntimeException;
+use Asinius\APIClient;
 
 /**
  * \Asinius\APIClient\SalesPad
@@ -54,7 +55,7 @@ class SalesPad
     protected static $_api_host     = '';
     protected static $_session_key  = '';
     protected static $_session_info = [];
-    protected static $_last_data    = '';
+    protected static $_last_data    = null;
     protected static $_page_size    = 100;
 
 
@@ -68,7 +69,7 @@ class SalesPad
      * @param   array       $parameters
      * @param   array       $headers
      *
-     * @throws  RuntimeException
+     * @throws  Exception|RuntimeException
      *
      * @return  mixed
      */
@@ -96,9 +97,8 @@ class SalesPad
             switch ($e->getCode()) {
                 case 28:
                     throw new RuntimeException('Timeout while trying to connect to ' . static::$_api_host, $e->getCode());
-                default:
-                    throw $e;
             }
+            throw $e;
         }
         if ( $response->empty() ) {
             throw new RuntimeException('The server returned an empty response (no headers or body)');
@@ -137,7 +137,7 @@ class SalesPad
      * @param   string      $password
      * @param   int         $type
      *
-     * @throws  RuntimeException
+     * @throws  Exception|RuntimeException
      *
      * @return  boolean
      */
@@ -146,7 +146,7 @@ class SalesPad
         if ( static::$_http_client !== null ) {
             return true;
         }
-        static::$_http_client = \Asinius\APIClient::get_http_client();
+        static::$_http_client = APIClient::get_http_client();
         static::$_http_client->setopt(CURLOPT_TIMEOUT, 20);
         //  TODO: Should probably do some kind of test request here to verify
         //  that $host_uri is valid before continuing.
@@ -157,11 +157,9 @@ class SalesPad
         switch ($type) {
             case static::SESSION_TEMPORARY:
                 $endpoint = '/api/Session';
-                $session_info = static::call('/api/Session', 'GET', [], ['Authorization' => "Basic $auth_string"]);
                 break;
             case static::SESSION_PERMANENT:
                 $endpoint = '/api/Session/Permanent';
-                $session_info = static::call('/api/Session/Permanent', 'GET', [], ['Authorization' => "Basic $auth_string"]);
                 break;
             default:
                 static::reset();
@@ -170,10 +168,7 @@ class SalesPad
         try {
             $session_info = static::call($endpoint, 'GET', [], ['Authorization' => "Basic $auth_string"]);
         } catch (Exception $e) {
-            if ( is_string(static::$_last_data) ) {
-                throw $e;
-            }
-            if ( static::$_last_data->response_code === 401 ) {
+            if ( is_a(static::$_last_data, 'Asinius\HTTP\Response') && static::$_last_data->response_code === 401 ) {
                 throw new RuntimeException('Incorrect username or password during login()');
             }
             throw $e;
@@ -193,7 +188,7 @@ class SalesPad
      * @param   string      $host_uri
      * @param   string      $session_id
      *
-     * @throws  RuntimeException
+     * @throws  Exception|RuntimeException
      *
      * @return  boolean
      */
@@ -202,16 +197,13 @@ class SalesPad
         if ( static::$_http_client !== null ) {
             return true;
         }
-        static::$_http_client = \Asinius\APIClient::get_http_client();
+        static::$_http_client = APIClient::get_http_client();
         static::$_api_host = rtrim($host_uri, '/');
         static::$_session_key = $session_id;
         try {
             $ping_reply = static::call('/api/Session/Ping');
         } catch (Exception $e) {
-            if ( is_string(static::$_last_data) ) {
-                throw $e;
-            }
-            if ( static::$_last_data->response_code === 401 ) {
+            if ( is_a(static::$_last_data, 'Asinius\HTTP\Response') && static::$_last_data->response_code === 401 ) {
                 throw new RuntimeException("Your Session ID is not valid or has expired");
             }
             throw $e;
@@ -240,7 +232,7 @@ class SalesPad
         static::$_api_host      = '';
         static::$_session_key   = '';
         static::$_session_info  = [];
-        static::$_last_data     = '';
+        static::$_last_data     = null;
     }
 
 

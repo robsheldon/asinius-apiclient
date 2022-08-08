@@ -36,7 +36,10 @@
 
 namespace Asinius\APIClient\SalesPad;
 
-use Asinius\Asinius, Asinius\APIClient\SalesPad, Exception, RuntimeException, OutOfBoundsException;
+use ArrayAccess, Countable, SeekableIterator;
+use RuntimeException, OutOfBoundsException;
+use Asinius\Asinius;
+use Asinius\APIClient\SalesPad;
 
 /**
  * \Asinius\APIClient\SalesPad\Iterator
@@ -45,7 +48,7 @@ use Asinius\Asinius, Asinius\APIClient\SalesPad, Exception, RuntimeException, Ou
  * from the SalesPad API's page-offset -based results. Just loop through elements
  * in the Iterator and it will request additional elements from the API as needed.
  */
-class Iterator implements \ArrayAccess, \Countable, \SeekableIterator
+class Iterator implements ArrayAccess, Countable, SeekableIterator
 {
 
     protected $_received    = 0;
@@ -155,8 +158,6 @@ class Iterator implements \ArrayAccess, \Countable, \SeekableIterator
      * @param   array       $elements
      *
      * @throws  RuntimeException
-     *
-     * @return  Iterator
      */
     public function __construct ($endpoint, array $parameters, $class_or_callable, array $elements)
     {
@@ -164,7 +165,7 @@ class Iterator implements \ArrayAccess, \Countable, \SeekableIterator
         $this->_endpoint    = $endpoint;
         $this->_parameters  = $parameters;
         $this->_call        = $class_or_callable;
-        if ( is_string($class_or_callable) && class_exists($class_or_callable, true) ) {
+        if ( is_string($class_or_callable) && class_exists($class_or_callable) ) {
             $this->_call_type = 'class';
         }
         else if ( is_callable($class_or_callable) ) {
@@ -180,53 +181,53 @@ class Iterator implements \ArrayAccess, \Countable, \SeekableIterator
     /**
      * offsetExists() is required for iterator objects.
      *
-     * @param   mixed       $key
+     * @param   mixed       $offset
      *
      * @return  boolean
      */
-    public function offsetExists ($key): bool
+    public function offsetExists ($offset): bool
     {
-        return array_key_exists($key, $this->_elements);
+        return array_key_exists($offset, $this->_elements);
     }
 
 
     /**
      * offsetGet() is required for iterator objects.
      *
-     * @param   mixed       $key
+     * @param   mixed       $offset
      *
      * @return  mixed
      */
-    public function &offsetGet ($key)
+    public function &offsetGet ($offset)
     {
-        return $this->_elements[$key];
+        return $this->_elements[$offset];
     }
 
 
     /**
      * offsetSet() is required for iterator objects.
      *
-     * @param   mixed       $key
+     * @param   mixed       $offset
      * @param   mixed       $value
      *
      * @return  void
      */
-    public function offsetSet ($key, $value)
+    public function offsetSet ($offset, $value)
     {
-        $this->_elements[$key] = $value;
+        $this->_elements[$offset] = $value;
     }
 
 
     /**
      * offsetUnset() is required for iterator objects.
      *
-     * @param   mixed       $key
+     * @param   mixed       $offset
      *
      * @return  void
      */
-    public function offsetUnset ($key)
+    public function offsetUnset ($offset)
     {
-        unset($this->_elements[$key]);
+        unset($this->_elements[$offset]);
     }
 
 
@@ -236,7 +237,7 @@ class Iterator implements \ArrayAccess, \Countable, \SeekableIterator
      *
      * @return  int
      */
-    public function count ()
+    public function count (): integer
     {
         //  IMPORTANT: This will return the CURRENT count of elements stored in
         //  the iterator; it's not worth loading all available pages for a query
@@ -262,7 +263,7 @@ class Iterator implements \ArrayAccess, \Countable, \SeekableIterator
     /**
      * key() is required for iterator objects.
      *
-     * @return  mixed
+     * @return  int|string|null
      */
     public function key ()
     {
@@ -323,28 +324,27 @@ class Iterator implements \ArrayAccess, \Countable, \SeekableIterator
     /**
      * seek() is required for iterator objects.
      *
-     * @param   int         $index
+     * @param   mixed       $offset
      *
      * @throws  RuntimeException
      *
-     * @return  mixed
+     * @return  void
      */
-    public function seek (int $index)
+    public function seek ($offset)
     {
-        if ( ! $this->offsetExists($index) ) {
-            throw new OutOfBoundsException("Can't seek() to index $index");
+        if ( ! $this->offsetExists($offset) ) {
+            throw new OutOfBoundsException(sprintf("Can't seek() to offset %s", Asinius::to_str($offset)));
         }
         //  Lame, but it works and doesn't require the overhead of manually
         //  keeping track of an index for a simple ordered list.
         //  Internally, PHP's native ArrayIterator::seek() function also needs
         //  to traverse the list until it finds a matching index.
-        while ( $index > $this->key() ) {
+        while ( $offset > $this->key() ) {
             $this->next();
         }
-        while ( $index < $this->key() ) {
+        while ( $offset < $this->key() ) {
             $this->prev();
         }
-        return $this->current();
     }
 
 
@@ -366,7 +366,7 @@ class Iterator implements \ArrayAccess, \Countable, \SeekableIterator
      */
     public function keys (): array
     {
-        return keys($this->_elements);
+        return array_keys($this->_elements);
     }
 
 
@@ -377,7 +377,7 @@ class Iterator implements \ArrayAccess, \Countable, \SeekableIterator
      */
     public function values (): array
     {
-        return values($this->_elements);
+        return array_values($this->_elements);
     }
 
 

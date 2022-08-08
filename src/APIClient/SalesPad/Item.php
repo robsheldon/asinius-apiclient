@@ -37,7 +37,9 @@
 
 namespace Asinius\APIClient\SalesPad;
 
-use Asinius\Asinius, Asinius\APIClient\SalesPad, RuntimeException;
+use RuntimeException;
+use Asinius\Asinius;
+use Asinius\APIClient\SalesPad;
 
 /**
  * \Asinius\APIClient\SalesPad\Item
@@ -78,7 +80,7 @@ class Item
      *
      * @return  Iterator
      */
-    public static function search (string $query = '')
+    public static function search (string $query = ''): Iterator
     {
         $parameters = ['$top' => '100'];
         if ( $query !== '' ) {
@@ -98,6 +100,8 @@ class Item
      *
      * @param   string      $item_number
      *
+     * @throws  RuntimeException
+     *
      * @return  Item|null
      */
     public static function get (string $item_number)
@@ -105,6 +109,9 @@ class Item
         $items = static::search("Item_Number eq '$item_number'");
         if ( $items->count() < 1 ) {
             return null;
+        }
+        if ( $items->count() > 1 ) {
+            throw new RuntimeException(sprintf('Multiple results were returned by ItemMaster for Item_Number %s', Asinius::to_str($item_number)));
         }
         return $items[0];
     }
@@ -139,7 +146,7 @@ class Item
      *
      * @return  void
      */
-    protected function _set_property ($key, $value)
+    protected function _set_property (string $key, $value)
     {
         if ( array_key_exists($key, static::$_field_maps) ) {
             if ( is_string(static::$_field_maps[$key]) ) {
@@ -167,8 +174,6 @@ class Item
      * throw() an exception if it isn't being called by the Iterator class.
      *
      * @param   array       $item_detail
-     *
-     * @return  Item
      */
     public function __construct (array $item_detail)
     {
