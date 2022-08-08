@@ -84,10 +84,6 @@ class SalesPad
         try {
             switch ($method) {
                 case 'GET':
-                    if ( in_array($endpoint, ['/api/ItemMaster']) ) {
-                        //  Set the default page size for these requests.
-                        $parameters['$top'] = static::$_page_size;
-                    }
                     $response = static::$_http_client->get(sprintf('%s%s', static::$_api_host, $endpoint), $parameters, $headers);
                     break;
                 default:

@@ -82,7 +82,7 @@ class Item
      */
     public static function search (string $query = ''): Iterator
     {
-        $parameters = ['$top' => '100'];
+        $parameters = ['$top' => sprintf('%d', SalesPad::get_page_size())];
         if ( $query !== '' ) {
             $parameters['$filter'] = $query;
         }
