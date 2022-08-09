@@ -109,7 +109,7 @@ class Iterator implements ArrayAccess, Countable, SeekableIterator
         if ( $this->_endpoint === null ) {
             return;
         }
-        if ( is_string($this->_endpoint) && preg_match('|^/api/|', $this->_endpoint) === true ) {
+        if ( is_string($this->_endpoint) && preg_match('|^/api/|', $this->_endpoint) !== false ) {
             $elements = SalesPad::call($this->_endpoint, 'GET', array_merge($this->_parameters, ['$skip' => $this->_received]));
             $elements = array_intersect_key($elements, ['Items' => true]);
             if ( empty($elements) ) {
