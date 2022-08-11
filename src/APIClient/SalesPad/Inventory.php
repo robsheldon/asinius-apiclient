@@ -134,7 +134,10 @@ class Inventory
         $received = 0;
         $out = [];
         foreach ($squashed as $item_number => $items) {
-            $item = @array_intersect_assoc(...$items);
+            //  This should be an impossible condition:
+            if ( ! is_array($items) || count($items) < 1 ) continue;
+            //  PHP < 8.0, array_intersect_assoc() may fail if there is only one item.
+            $item = count($items) < 2  ? $items[0] : @array_intersect_assoc(...$items);
             $keys = array_fill_keys(array_keys($item), true);
             $item['Locations'] = array_map(function($item) use ($keys){
                 return array_intersect_key($item, array_diff_key($item, $keys));
