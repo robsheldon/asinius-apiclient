@@ -130,19 +130,20 @@ class CommonObject
     }
 
 
+    /**
+     * Create a new entry in the SalesPad database. Derived classes should overload
+     * this function and then call back to it with all of the properties required
+     * to add their entry to SalesPad.
+     *
+     * @param   array       $properties
+     *
+     * @throws  RuntimeException
+     *
+     * @return  void
+     */
     public static function create (array $properties)
     {
-        //  Derived classes should overload this function and then call back to
-        //  it with all of the required properties to create their entity in SalesPad.
-        if ( static::$_endpoint === '' ) {
-            throw new RuntimeException(sprintf('%s::create() is not implemented', static::class));
-        }
-        $results = SalesPad::call(static::$_endpoint, 'POST', $properties);
-        echo "results:\n";
-        var_dump($results);
-        echo "\n\nlast_api_response():\n";
-        var_dump(SalesPad::get_last_api_response());
-        die();
+        throw new RuntimeException(sprintf('%s::create() is not implemented', static::class));
     }
 
 
