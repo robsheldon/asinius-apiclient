@@ -86,6 +86,9 @@ class SalesPad
                 case 'GET':
                     $response = static::$_http_client->get(sprintf('%s%s', static::$_api_host, $endpoint), $parameters, $headers);
                     break;
+                case 'POST':
+                    $response = static::$_http_client->post(sprintf('%s%s', static::$_api_host, $endpoint), json_encode($parameters), $headers);
+                    break;
                 default:
                     throw new RuntimeException("Unsupported API call method: $method");
             }
