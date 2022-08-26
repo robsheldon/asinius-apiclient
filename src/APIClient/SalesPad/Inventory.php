@@ -40,6 +40,7 @@ namespace Asinius\APIClient\SalesPad;
 use Exception, RuntimeException;
 use Asinius\Asinius;
 use Asinius\APIClient\SalesPad;
+use Asinius\APIClient\SalesPad\CommonObject;
 
 
 /**
@@ -69,10 +70,14 @@ use Asinius\APIClient\SalesPad;
  * value is returned to the Iterator, and the Iterator passes the cursor value
  * back to Inventory's page loader.
  */
-class Inventory
+class Inventory extends CommonObject
 {
 
-    protected static    $_cursors         = [];
+    protected static    $_endpoint      = '/api/InventorySearch';
+    protected static    $_id_key        = 'Item_Number';
+    protected static    $_short_name    = 'Inventory';
+    protected static    $_field_maps    = [];
+    protected static    $_cursors       = [];
 
 
     /**
@@ -213,26 +218,4 @@ class Inventory
         return new Iterator([static::class, '_load_next_page'], ['cursor' => $cursor_key], '\Asinius\APIClient\SalesPad\Item', static::_squash_inventory($cursor_key, $items));
     }
 
-
-    /**
-     * Retrieve a specific item from the InventorySearch endpoint. Returns null
-     * if the item was not found, otherwise returns an Item object.
-     *
-     * @param   string      $item_number
-     *
-     * @throws  Exception|RuntimeException
-     *
-     * @return  Item|null
-     */
-    public static function get (string $item_number)
-    {
-        $items = static::search("Item_Number eq '$item_number'");
-        if ( $items->count() < 1 ) {
-            return null;
-        }
-        if ( $items->count() > 1 ) {
-            throw new RuntimeException(sprintf('Failed to squash InventorySearch results for Item_Number %s', Asinius::to_str($item_number)));
-        }
-        return $items[0];
-    }
 }
