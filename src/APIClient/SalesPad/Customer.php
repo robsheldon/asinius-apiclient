@@ -35,6 +35,86 @@
 *                                                                              *
 *******************************************************************************/
 
+/*
+    Example customer record:
+                   Customer_Num: "000016"
+                  Customer_Name: "Rob Sheldon"
+                 Customer_Class: ""
+         Corporate_Customer_Num: ""
+                     Short_Name: ""
+                 Statement_Name: ""
+              Primary_Addr_Code: ""
+      Primary_Bill_To_Addr_Code: ""
+      Primary_Ship_To_Addr_Code: ""
+         Statement_To_Addr_Code: ""
+                Sales_Person_ID: ""
+                Sales_Territory: ""
+                  Payment_Terms: ""
+                Shipping_Method: ""
+                    Price_Level: ""
+                     User_Def_1: ""
+                     User_Def_2: ""
+                   Tax_Exempt_1: ""
+                   Tax_Exempt_2: ""
+           Tax_Registration_Num: ""
+                      Comment_1: ""
+                      Comment_2: ""
+              IntegrationSource: int(0)
+                       Inactive: bool(false)
+                        On_Hold: bool(false)
+                           Note: "Test account"
+                    Currency_ID: "Z-US$"
+                   Currency_Dec: int(2)
+                      Last_Aged: "1900-01-01T00:00:00.000Z"
+                        Balance: float(0)
+               Unapplied_Amount: float(0)
+          Customer_Credit_Limit: float(0)
+                  Last_Pay_Date: "1900-01-01T00:00:00.000Z"
+                   Last_Pay_Amt: float(0)
+             First_Invoice_Date: "1900-01-01T00:00:00.000Z"
+              Last_Invoice_Date: "1900-01-01T00:00:00.000Z"
+               Last_Invoice_Amt: float(0)
+                 Last_Stmt_Date: "1900-01-01T00:00:00.000Z"
+                  Last_Stmt_Amt: float(0)
+                  Life_Avg_Days: int(0)
+                  Year_Avg_Days: int(0)
+       Total_Amt_NSF_Checks_YTD: float(0)
+             Num_NSF_Checks_YTD: int(0)
+                   Tax_Schedule: ""
+                  Ship_Complete: bool(false)
+                  Stmt_Email_To: ""
+                  Stmt_Email_CC: ""
+                 Stmt_Email_BCC: ""
+                       Email_To: "rob@robsheldon.com"
+                       Email_CC: ""
+                      Email_BCC: ""
+                        Message: ""
+                       USERDEF1: ""
+                       USERDEF2: ""
+                 Trade_Discount: float(0)
+             Master_Distributor: ""
+              Method_Of_Billing: int(0)
+          Send_Email_Statements: int(0)
+                     Created_On: "2022-09-01T00:00:00.000-04:00"
+                     Changed_On: "2022-09-01T00:00:00.000-04:00"
+    Promotions_Applied_Customer: ""
+                     DEX_ROW_TS: "2022-09-01T00:00:00.000-04:00"
+                On_Order_Amount: float(0)
+              Credit_Limit_Type: int(0)
+            Finance_Charge_Type: int(0)
+             Finance_Charge_Amt: float(0)
+             Finance_Charge_Pct: int(0)
+                   Min_Pmt_Type: int(0)
+                    Min_Pmt_Amt: float(0)
+                    Min_Pmt_Pct: int(0)
+                   Balance_Type: int(0)
+              Max_Writeoff_Type: int(0)
+               Max_Writeoff_Amt: float(0)
+                  Notifications: []
+                   Created_Date: "1900-01-01T00:00:00.000Z"
+                       Ship_Day: ""
+ */
+
 namespace Asinius\APIClient\SalesPad;
 
 use RuntimeException;
