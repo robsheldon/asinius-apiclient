@@ -65,7 +65,7 @@ class Item extends CommonObject
      *
      * @return  void
      */
-    public static function create (array $values)
+    public static function create (array $values = [])
     {
         throw new RuntimeException(static::class . '::create() is not implemented');
     }
