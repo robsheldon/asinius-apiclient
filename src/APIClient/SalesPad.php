@@ -87,7 +87,7 @@ class SalesPad
                     $response = static::$_http_client->get(sprintf('%s%s', static::$_api_host, $endpoint), $parameters, $headers);
                     break;
                 case 'POST':
-                    $response = static::$_http_client->post(sprintf('%s%s', static::$_api_host, $endpoint), json_encode($parameters), $headers);
+                    $response = static::$_http_client->post(sprintf('%s%s', static::$_api_host, $endpoint), json_encode($parameters, JSON_FORCE_OBJECT), $headers);
                     break;
                 default:
                     throw new RuntimeException("Unsupported API call method: $method");
@@ -102,7 +102,7 @@ class SalesPad
         if ( $response->empty() ) {
             throw new RuntimeException('The server returned an empty response (no headers or body)');
         }
-        static::$_last_data = $response->body;
+        static::$_last_data = $response;
         switch ($response->content_type) {
             case 'text/html':
                 throw new RuntimeException(sprintf('%s%s returned html, probably an error page', static::$_api_host, $endpoint));
@@ -110,6 +110,20 @@ class SalesPad
         switch ($response->response_code) {
             case 401:
                 throw new RuntimeException(sprintf('You are not authorized to %s %s on %s', $method, $endpoint, static::$_api_host));
+        }
+        static::$_last_data = $response->body;
+        if ( is_array(static::$_last_data) ) {
+            if ( array_key_exists('StatusCode', static::$_last_data) ) {
+                if ( static::$_last_data['StatusCode'] === 'InternalServerError' ) {
+                    if ( array_key_exists('Messages', static::$_last_data) ) {
+                        if ( is_array(static::$_last_data['Messages']) && count(static::$_last_data['Messages']) === 1 ) {
+                            throw new RuntimeException(sprintf('%s %s returned an Internal Server Error: "%s"', $method, $endpoint, static::$_last_data['Messages'][0]));
+                        }
+                        throw new RuntimeException(sprintf('%s %s returned an Internal Server Error: "%s"', $method, $endpoint, Asinius::to_str(static::$_last_data['Messages'])));
+                    }
+                    throw new RuntimeException(sprintf('%s %s returned an Internal Server Error. Further information is not available', $method, $endpoint));
+                }
+            }
         }
         return static::$_last_data;
     }
