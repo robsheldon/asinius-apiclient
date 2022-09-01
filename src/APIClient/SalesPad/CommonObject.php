@@ -37,7 +37,7 @@
 
 namespace Asinius\APIClient\SalesPad;
 
-use RuntimeException;
+use RuntimeException, InvalidArgumentException, BadMethodCallException;
 use Asinius\Asinius;
 use Asinius\APIClient\SalesPad;
 
@@ -47,6 +47,8 @@ use Asinius\APIClient\SalesPad;
  * A lot of SalesPad "entities" (Items, Inventory, SalesDocuments, Customers)
  * share common behaviors, so a simple shared base class gives us a lot of
  * endpoint support for cheap.
+ *
+ * @method static   mixed   create(array $values)
  */
 class CommonObject
 {
@@ -57,6 +59,48 @@ class CommonObject
     protected static    $_field_maps    = [];
     protected           $_id            = '';
     protected           $_properties    = [];
+
+
+    /**
+     * Provide support for a create() static method that can't be implemented
+     * in the normal way due to a limitation in PHP.
+     *
+     * @param   string      $function
+     * @param   array       $arguments
+     *
+     * @throws  InvalidArgumentException|RuntimeException|BadMethodCallException
+     *
+     * @return  mixed
+     */
+    public static function __callStatic (string $function, array $arguments)
+    {
+        switch ($function) {
+            case 'create':
+                //  This is here because derived classes need to enforce
+                //  constraints on the arguments they'll accept when creating
+                //  new records in SalesPad, but PHP doesn't allow method
+                //  overloading with mismatched function signatures, so I can't
+                //  define CommonObject::create() in the usual way.
+                if ( count($arguments) !== 1 ) {
+                    throw new InvalidArgumentException(sprintf('%s::%s(): wrong number of arguments (expecting 1, got %s', static::class, $function, count($arguments)));
+                }
+                $values = array_shift($arguments);
+                if ( ! is_array($values) ) {
+                    throw new InvalidArgumentException(sprintf('%s::$s() expects argument 1 to be an array', static::class, $function));
+                }
+                $results = SalesPad::call(static::$_endpoint, 'POST', $values);
+                //  SalesPad -typically- returns the newly-created record.
+                if ( is_array($results) && array_key_exists('Customer_Num', $results) ) {
+                    //  Passing null for the endpoint prevents the Iterator from trying to repeat
+                    //  this function call.
+                    $entry = new Iterator(null, $values, static::class, [$results]);
+                    return $entry[0];
+                }
+                throw new RuntimeException(sprintf('Unexpected response to POST from server for %s', static::$_endpoint));
+            default:
+                throw new BadMethodCallException(sprintf('%s::%s() is not defined', static::class, $function));
+        }
+    }
 
 
     /**
@@ -135,16 +179,11 @@ class CommonObject
      * this function and then call back to it with all of the properties required
      * to add their entry to SalesPad.
      *
-     * @param   array       $properties
-     *
-     * @throws  RuntimeException
-     *
-     * @return  void
+     * This function cannot be defined here because derived classes need their own
+     * function signature and PHP does not support method overloading. A stub
+     * implementation is handled in __callStatic.
      */
-    public static function create (array $properties)
-    {
-        throw new RuntimeException(sprintf('%s::create() is not implemented', static::class));
-    }
+    //  public static function create (array $properties) {...}
 
 
     /**
