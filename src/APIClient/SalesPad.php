@@ -38,7 +38,7 @@
 namespace Asinius\APIClient;
 
 use Exception, RuntimeException;
-use Asinius\APIClient;
+use Asinius\Asinius, Asinius\APIClient;
 
 /**
  * \Asinius\APIClient\SalesPad
@@ -159,6 +159,7 @@ class SalesPad
         if ( static::$_http_client !== null ) {
             return true;
         }
+        $e = null;
         static::$_http_client = APIClient::get_http_client();
         static::$_http_client->setopt(CURLOPT_TIMEOUT, 20);
         //  TODO: Should probably do some kind of test request here to verify
@@ -182,15 +183,23 @@ class SalesPad
             $session_info = static::call($endpoint, 'GET', [], ['Authorization' => "Basic $auth_string"]);
         } catch (Exception $e) {
             if ( is_a(static::$_last_data, 'Asinius\HTTP\Response') && static::$_last_data->response_code === 401 ) {
-                throw new RuntimeException('Incorrect username or password during login()');
+                $e = new RuntimeException('Incorrect username or password during login()');
             }
-            throw $e;
         }
-        if ( is_array($session_info) && array_key_exists('SessionID', $session_info) ) {
-            static::$_session_key = $session_info['SessionID'];
-            return true;
+        if ( $e === null ) {
+            if ( is_array($session_info) && array_key_exists('SessionID', $session_info) ) {
+                static::$_session_key = $session_info['SessionID'];
+                return true;
+            }
+            $e = new RuntimeException('An unexpected response was returned from SalesPad during login');
         }
-        throw new RuntimeException('An unexpected response was returned from SalesPad during login');
+        //  Reset the http client and session key, but not the last response from
+        //  the server (in case the application wants it).
+        $last = static::$_last_data;
+        static::reset();
+        static::$_last_data = $last;
+        //  And finally return the error back to the application.
+        throw $e;
     }
 
 
@@ -210,6 +219,7 @@ class SalesPad
         if ( static::$_http_client !== null ) {
             return true;
         }
+        $e  = null;
         static::$_http_client = APIClient::get_http_client();
         static::$_api_host = rtrim($host_uri, '/');
         static::$_session_key = $session_id;
@@ -217,19 +227,27 @@ class SalesPad
             $ping_reply = static::call('/api/Session/Ping');
         } catch (Exception $e) {
             if ( is_a(static::$_last_data, 'Asinius\HTTP\Response') && static::$_last_data->response_code === 401 ) {
-                throw new RuntimeException("Your Session ID is not valid or has expired");
+                $e = new RuntimeException("Your Session ID is not valid or has expired");
             }
-            throw $e;
         }
-        if ( is_array($ping_reply) ) {
+        if ( $e === null ) {
             if ( $ping_reply === ['StatusCode' => 'OK', 'ErrorCode' => 0, 'ErrorCodeMessage' => 'No Error', 'Messages' => ['Session is active']] ) {
                 return true;
             }
-            if ( array_key_exists('Messages', $ping_reply) && $ping_reply['Messages'] === ['Guid should contain 32 digits with 4 dashes (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx).'] ) {
-                throw new RuntimeException("The Session ID you provided is not valid");
+            if ( ! is_array($ping_reply) ) {
+                $e = new RuntimeException('An unexpected response was returned from SalesPad during session restart');
+            }
+            else if ( array_key_exists('Messages', $ping_reply) && $ping_reply['Messages'] === ['Guid should contain 32 digits with 4 dashes (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx).'] ) {
+                $e = new RuntimeException("The Session ID you provided is not valid");
             }
         }
-        throw new RuntimeException('An unexpected response was returned from SalesPad during session restart');
+        //  Reset the http client and session key, but not the last response from
+        //  the server (in case the application wants it).
+        $last = static::$_last_data;
+        static::reset();
+        static::$_last_data = $last;
+        //  And finally return the error back to the application.
+        throw $e;
     }
 
 
