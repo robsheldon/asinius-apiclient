@@ -254,8 +254,10 @@ class Iterator implements ArrayAccess, Countable, SeekableIterator
      */
     public function current ()
     {
-        //  Trigger the next page load if necessary.
-        $this->key();
+        if ( ($current = current($this->_elements)) !== false ) {
+            return $current;
+        }
+        $this->_load_next_page();
         return current($this->_elements);
     }
 
@@ -267,9 +269,10 @@ class Iterator implements ArrayAccess, Countable, SeekableIterator
      */
     public function key ()
     {
-        if ( key($this->_elements) === null ) {
-            $this->_load_next_page();
+        if ( ($key = key($this->_elements)) !== null ) {
+            return $key;
         }
+        $this->_load_next_page();
         return key($this->_elements);
     }
 
@@ -281,9 +284,11 @@ class Iterator implements ArrayAccess, Countable, SeekableIterator
      */
     public function next ()
     {
-        //  Trigger the next page load if necessary.
-        $this->key();
-        return next($this->_elements);
+        if ( ($next = next($this->_elements)) !== false ) {
+            return $next;
+        }
+        $this->_load_next_page();
+        return current($this->_elements);
     }
 
 
