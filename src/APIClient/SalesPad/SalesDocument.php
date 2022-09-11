@@ -41,6 +41,7 @@ use RuntimeException;
 use Asinius\Asinius;
 use Asinius\APIClient\SalesPad;
 use Asinius\APIClient\SalesPad\CommonObject;
+use Asinius\APIClient\SalesPad\Customer;
 
 /**
  * \Asinius\APIClient\SalesPad\SalesDocument
@@ -56,7 +57,7 @@ class SalesDocument extends CommonObject
     protected static    $_field_maps    = [];
 
 
-    public static function create (string $customer_number, string $type, string $price_level, array $properties = [])
+    public static function create (Customer $customer, string $type, string $price_level, array $properties = [])
     {
         if ( static::$_endpoint === '' ) {
             throw new RuntimeException(sprintf('%s::create() is not implemented', static::class));
@@ -70,10 +71,20 @@ class SalesDocument extends CommonObject
         //  levels before creating a sales order.
         //  For now, let's proceed with creating this order without making an
         //  extra API call to verify that the customer exists.
-        $properties['Customer_Num'] = $customer_number;
-        $properties['Sales_Doc_Type'] = $type;
-        $properties['Price_Level'] = $price_level;
-        return parent::create($properties);
+        return parent::create(array_merge(
+            [
+                //  Defaults.
+                'Customer_Name'     => $customer->Customer_Name,
+            ],
+            //  Application-provided. Applications can override defaults here.
+            $properties,
+            [
+                //  Required:
+                'Customer_Num'      => $customer->id,
+                'Sales_Doc_Type'    => $type,
+                'Price_Level'       => $price_level,
+            ]
+        ));
     }
 
 }
