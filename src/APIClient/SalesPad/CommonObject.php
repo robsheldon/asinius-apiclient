@@ -57,6 +57,7 @@ class CommonObject
     protected static    $_id_key        = '';
     protected static    $_short_name    = '';
     protected static    $_field_maps    = [];
+    protected static    $_maps_xref     = [];
     protected           $_id            = '';
     protected           $_properties    = [];
 
@@ -202,19 +203,26 @@ class CommonObject
      */
     protected function _set_property (string $key, $value)
     {
+        $unmapped_key   = $key;
+        $unmapped_value = $value;
         if ( array_key_exists($key, static::$_field_maps) ) {
             if ( is_string(static::$_field_maps[$key]) ) {
-                $this->_properties[static::$_field_maps[$key]] = $value;
+                $key = static::$_field_maps[$key];
             }
             else if ( is_callable(static::$_field_maps[$key]) ) {
-                $this->_properties = array_merge($this->_properties, static::$_field_maps[$key]($value));
+                $mapped = static::$_field_maps[$key]($value);
+                $value = reset($mapped);
+                $key = key($mapped);
             }
             else {
                 throw new RuntimeException("Unsupported field map: $key");
             }
         }
-        else {
-            $this->_properties[$key] = $value;
+        $this->_properties[$key] = $value;
+        //  A cross-reference of mapped keys and value types is maintained here
+        //  for use by the unmapped() function and inter-object data sharing.
+        if ( ! array_key_exists($unmapped_key, static::$_maps_xref) ) {
+            static::$_maps_xref[$unmapped_key] = ['property' => $key, 'api_type' => gettype($unmapped_value)];
         }
     }
 
@@ -280,6 +288,47 @@ class CommonObject
     public function __set (string $key, $value)
     {
         $this->_set_property($key, $value);
+    }
+
+
+    /**
+     * Return the current value of a property referenced by its unmapped
+     * (original) property name. This is so that objects in the API can reliably
+     * get information from other objects even if the application has remapped
+     * some property names for convenience.
+     *
+     * The value is returned in the same type as it was received from the API.
+     *
+     * @param   string      $property
+     *
+     * @return  mixed
+     */
+    public function unmapped (string $property)
+    {
+        if ( array_key_exists($property, static::$_maps_xref) ) {
+            $key = static::$_maps_xref[$property]['property'];
+            if ( array_key_exists($key, $this->_properties) ) {
+                if ( $this->_properties[$key] === null ) {
+                    return null;
+                }
+                switch (static::$_maps_xref[$property]['api_type']) {
+                    case 'double':
+                        return floatval($this->_properties[$key]);
+                    case 'integer':
+                        return intval($this->_properties[$key]);
+                    case 'boolean':
+                        if ( is_string($this->_properties[$key]) ) {
+                            return (! empty($this->_properties[$key]) && strtolower($this->_properties[$key] !== 'false'));
+                        }
+                        return $this->_properties[$key] ? true : false;
+                    case 'string':
+                        return sprintf('%s', $this->_properties[$key]);
+                    default:
+                        return $this->_properties[$key];
+                }
+            }
+        }
+        return null;
     }
 
 
