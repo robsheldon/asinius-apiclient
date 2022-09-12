@@ -74,7 +74,7 @@ class SalesDocument extends CommonObject
         return parent::create(array_merge(
             [
                 //  Defaults.
-                'Customer_Name'     => $customer->Customer_Name,
+                'Customer_Name'     => $customer->unmapped('Customer_Name'),
             ],
             //  Application-provided. Applications can override defaults here.
             $properties,
