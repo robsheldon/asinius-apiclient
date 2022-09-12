@@ -71,20 +71,24 @@ class SalesDocument extends CommonObject
         //  levels before creating a sales order.
         //  For now, let's proceed with creating this order without making an
         //  extra API call to verify that the customer exists.
-        return parent::create(array_merge(
+        $values = array_merge(
             [
                 //  Defaults.
                 'Customer_Name'     => $customer->unmapped('Customer_Name'),
+                //  Sales_Doc_ID is a required value; this is a placeholder
+                //  until we can get better info on the proper values to use.
+                'Sales_Doc_ID'      => 'ORD',
             ],
             //  Application-provided. Applications can override defaults here.
             $properties,
             [
                 //  Required:
-                'Customer_Num'      => $customer->id,
+                'Customer_Num'      => $customer->unmapped('Customer_Num'),
                 'Sales_Doc_Type'    => $type,
                 'Price_Level'       => $price_level,
             ]
-        ));
+        );
+        return parent::create($values);
     }
 
 }

@@ -137,7 +137,7 @@ class Customer extends CommonObject
 
 
     /**
-     * Create a new customer in the remote database. This appears t work with
+     * Create a new customer in the remote database. This appears to work with
      * just the customer name as the only required value (?). SalesPad returns
      * a customer entry with an assigned customer number, which is nice.
      *
