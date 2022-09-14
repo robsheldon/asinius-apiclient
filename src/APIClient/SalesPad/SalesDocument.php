@@ -42,6 +42,7 @@ use Asinius\Asinius;
 use Asinius\APIClient\SalesPad;
 use Asinius\APIClient\SalesPad\CommonObject;
 use Asinius\APIClient\SalesPad\Customer;
+use Asinius\APIClient\SalesPad\Price_Level;
 
 /**
  * \Asinius\APIClient\SalesPad\SalesDocument
@@ -57,7 +58,7 @@ class SalesDocument extends CommonObject
     protected static    $_field_maps    = [];
 
 
-    public static function create (Customer $customer, string $type, string $price_level, array $properties = [])
+    public static function create (Customer $customer, string $type, Price_Level $price_level, array $properties = [])
     {
         if ( static::$_endpoint === '' ) {
             throw new RuntimeException(sprintf('%s::create() is not implemented', static::class));
@@ -65,10 +66,6 @@ class SalesDocument extends CommonObject
         if ( ! in_array($type, ['QUOTE', 'ORDER', 'INVOICE', 'RETURN', 'BACKORDER', 'FULFILLMENT']) ) {
             throw new RuntimeException(sprintf('%s::create(): %s is not a valid SalesDocument type', static::class, $type));
         }
-        //  $price_level must match a pre-defined value in the database.
-        //  (You cannot define your own price levels here.)
-        //  TODO: Implement the PriceLevel endpoint and cache available price
-        //  levels before creating a sales order.
         //  For now, let's proceed with creating this order without making an
         //  extra API call to verify that the customer exists.
         $values = array_merge(
@@ -85,7 +82,7 @@ class SalesDocument extends CommonObject
                 //  Required:
                 'Customer_Num'      => $customer->unmapped('Customer_Num'),
                 'Sales_Doc_Type'    => $type,
-                'Price_Level'       => $price_level,
+                'Price_Level'       => $price_level->name,
             ]
         );
         return parent::create($values);
