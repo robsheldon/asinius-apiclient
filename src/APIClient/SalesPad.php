@@ -103,13 +103,15 @@ class SalesPad
             throw new RuntimeException('The server returned an empty response (no headers or body)');
         }
         static::$_last_data = $response;
-        switch ($response->content_type) {
-            case 'text/html':
-                throw new RuntimeException(sprintf('%s%s returned html, probably an error page', static::$_api_host, $endpoint));
-        }
         switch ($response->response_code) {
             case 401:
                 throw new RuntimeException(sprintf('You are not authorized to %s %s on %s', $method, $endpoint, static::$_api_host));
+            case 404:
+                throw new RuntimeException(sprintf('SalesPad responded with 404 (Not Found) on: %s %s%s', $method, static::$_api_host, $endpoint));
+        }
+        switch ($response->content_type) {
+            case 'text/html':
+                throw new RuntimeException(sprintf('%s%s returned html, probably an error page', static::$_api_host, $endpoint));
         }
         static::$_last_data = $response->body;
         if ( is_array(static::$_last_data) ) {
