@@ -43,6 +43,7 @@ use Asinius\APIClient\SalesPad;
 use Asinius\APIClient\SalesPad\CommonObject;
 use Asinius\APIClient\SalesPad\Customer;
 use Asinius\APIClient\SalesPad\Price_Level;
+use Asinius\APIClient\SalesPad\Iterator;
 
 /**
  * \Asinius\APIClient\SalesPad\SalesDocument
@@ -56,6 +57,7 @@ class SalesDocument extends CommonObject
     protected static    $_id_key        = 'Sales_Doc_Num';
     protected static    $_short_name    = 'SalesDocument';
     protected static    $_field_maps    = [];
+    protected           $_line_items    = null;
 
 
     public static function create (Customer $customer, string $type, Price_Level $price_level, array $properties = [])
@@ -86,6 +88,24 @@ class SalesDocument extends CommonObject
             ]
         );
         return parent::create($values);
+    }
+
+
+    public function line_items ()
+    {
+        if ( $this->_line_items === null ) {
+            //  Well, "/api/SalesLineItem/[Sales_Doc_Type]/[Sales_Doc_Num]" doesn't
+            //  work, which makes it kind of useless. Use an OData query instead:
+            $sales_id = $this->unmapped('Sales_Doc_Num');
+            $query = sprintf("Sales_Doc_Num eq '%s'", $sales_id);
+            $results = SalesPad::call('/api/SalesLineItem', 'GET', ['$filter' => $query]);
+            if ( ! isset($results['Items']) ) {
+                throw new RuntimeException(sprintf('Failed to load line items for Sales Document "%s"', $sales_id));
+            }
+            //  The results aren't being paged, so the Iterator is temporary:
+            $this->_line_items = iterator_to_array(new Iterator(null, [], 'Asinius\APIClient\SalesPad\SalesLineItem', $results['Items']));
+        }
+        return $this->_line_items;
     }
 
 }
