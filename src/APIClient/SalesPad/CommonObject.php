@@ -40,6 +40,7 @@ namespace Asinius\APIClient\SalesPad;
 use RuntimeException, InvalidArgumentException, BadMethodCallException;
 use Asinius\Asinius;
 use Asinius\APIClient\SalesPad;
+use Asinius\APIClient\SalesPad\Iterator;
 
 /**
  * \Asinius\APIClient\SalesPad\CommonObject
