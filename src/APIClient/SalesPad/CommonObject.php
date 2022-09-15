@@ -92,7 +92,7 @@ class CommonObject
                 }
                 $results = SalesPad::call(static::$_endpoint, 'POST', $values);
                 //  SalesPad -typically- returns the newly-created record.
-                if ( is_array($results) && array_key_exists('Customer_Num', $results) ) {
+                if ( isset($results[static::$_id_key]) ) {
                     //  Passing null for the endpoint prevents the Iterator from trying to repeat
                     //  this function call.
                     $entry = new Iterator(null, $values, static::class, [$results]);
