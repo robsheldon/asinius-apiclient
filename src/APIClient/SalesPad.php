@@ -108,25 +108,19 @@ class SalesPad
                 throw new RuntimeException(sprintf('You are not authorized to %s %s on %s', $method, $endpoint, static::$_api_host));
             case 404:
                 throw new RuntimeException(sprintf('SalesPad responded with 404 (Not Found) on: %s %s%s', $method, static::$_api_host, $endpoint));
+            case 500:
+                static::$_last_data = $response->body;
+                if ( ! isset(static::$_last_data['StatusCode']) || ! isset(static::$_last_data['Messages']) ) {
+                    throw new RuntimeException(sprintf('%s %s returned an Internal Server Error but did not provide an error message', $method, $endpoint));
+                }
+                $error_message = ( (! is_array(static::$_last_data['Messages'])) || count(static::$_last_data['Messages']) !== 1 ) ? Asinius::to_str(static::$_last_data['Messages']) : static::$_last_data['Messages'][0];
+                throw new RuntimeException(sprintf('%s %s returned an Internal Server Error: "%s"', $method, $endpoint, $error_message));
         }
         switch ($response->content_type) {
             case 'text/html':
                 throw new RuntimeException(sprintf('%s%s returned html, probably an error page', static::$_api_host, $endpoint));
         }
         static::$_last_data = $response->body;
-        if ( is_array(static::$_last_data) ) {
-            if ( array_key_exists('StatusCode', static::$_last_data) ) {
-                if ( static::$_last_data['StatusCode'] === 'InternalServerError' ) {
-                    if ( array_key_exists('Messages', static::$_last_data) ) {
-                        if ( is_array(static::$_last_data['Messages']) && count(static::$_last_data['Messages']) === 1 ) {
-                            throw new RuntimeException(sprintf('%s %s returned an Internal Server Error: "%s"', $method, $endpoint, static::$_last_data['Messages'][0]));
-                        }
-                        throw new RuntimeException(sprintf('%s %s returned an Internal Server Error: "%s"', $method, $endpoint, Asinius::to_str(static::$_last_data['Messages'])));
-                    }
-                    throw new RuntimeException(sprintf('%s %s returned an Internal Server Error. Further information is not available', $method, $endpoint));
-                }
-            }
-        }
         return static::$_last_data;
     }
 
