@@ -134,6 +134,7 @@ class Customer extends CommonObject
     protected static    $_id_key        = 'Customer_Num';
     protected static    $_short_name    = 'Customer';
     protected static    $_field_maps    = [];
+    protected           $_addresses     = null;
 
 
     /**
@@ -158,6 +159,21 @@ class Customer extends CommonObject
         }
         $properties['Customer_Name'] = $name;
         return parent::create($properties);
+    }
+
+
+    public function get_addresses ()
+    {
+        if ( $this->_addresses === null ) {
+            $query = sprintf("%s eq '%s'", static::$_id_key, $this->unmapped(static::$_id_key));
+            $endpoint = '/api/CustomerAddr';
+            $results = SalesPad::call($endpoint, 'GET', ['$filter' => $query]);
+            if ( ! isset($results['Items']) ) {
+                throw new RuntimeException(sprintf('%s %s failed for %s "%s"', 'GET', $endpoint, static::$_short_name, $this->_id));
+            }
+            $this->_addresses = iterator_to_array(new Iterator(null, [], 'Asinius\APIClient\SalesPad\CustomerAddress', $results['Items']));
+        }
+        return $this->_addresses;
     }
 
 }
