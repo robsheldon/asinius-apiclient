@@ -55,4 +55,29 @@ class CustomerAddress extends CommonObject
     protected static    $_short_name    = 'CustomerAddress';
     protected static    $_field_maps    = [];
 
+
+    /**
+     * Create a new address for a specific customer record.
+     *
+     * SalesPad allows us to create empty customer addresses with just a customer
+     * number and an address code. I don't like that, but I'm not going to force
+     * applications to provide optional values either.
+     *
+     * This function can only be called by a Customer object (to ensure that
+     * an existing Customer_Num is provided), so use Customer->add_address() to
+     * call this function.
+     *
+     * @param   string      $customer_number
+     * @param   string      $address_code
+     * @param   array       $properties
+     *
+     * @return  CustomerAddress
+     */
+    public static function create (string $customer_number, string $address_code, array $properties = [])
+    {
+        Asinius::assert_parent('Asinius\APIClient\SalesPad\Customer');
+        $properties['Customer_Num'] = $customer_number;
+        $properties['Address_Code'] = $address_code;
+        return parent::create($properties);
+    }
 }

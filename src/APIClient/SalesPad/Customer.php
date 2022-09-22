@@ -121,6 +121,7 @@ use RuntimeException;
 use Asinius\Asinius;
 use Asinius\APIClient\SalesPad;
 use Asinius\APIClient\SalesPad\CommonObject;
+use Asinius\APIClient\SalesPad\CustomerAddress;
 
 /**
  * \Asinius\APIClient\SalesPad\Customer
@@ -162,18 +163,49 @@ class Customer extends CommonObject
     }
 
 
+    /**
+     * Load and return any addresses associated with this customer. Returns an
+     * array of CustomerAddress objects.
+     *
+     * @return  array
+     */
     public function get_addresses ()
     {
         if ( $this->_addresses === null ) {
+            $this->_addresses = [];
             $query = sprintf("%s eq '%s'", static::$_id_key, $this->unmapped(static::$_id_key));
             $endpoint = '/api/CustomerAddr';
             $results = SalesPad::call($endpoint, 'GET', ['$filter' => $query]);
             if ( ! isset($results['Items']) ) {
                 throw new RuntimeException(sprintf('%s %s failed for %s "%s"', 'GET', $endpoint, static::$_short_name, $this->_id));
             }
-            $this->_addresses = iterator_to_array(new Iterator(null, [], 'Asinius\APIClient\SalesPad\CustomerAddress', $results['Items']));
+            $addresses = new Iterator(null, [], 'Asinius\APIClient\SalesPad\CustomerAddress', $results['Items']);
+            foreach ($addresses as $address) {
+                $this->_addresses[$address->id] = $address;
+            }
         }
         return $this->_addresses;
+    }
+
+
+    /**
+     * Create a new address and add it to this customer. The address code must not
+     * already exist for this customer.
+     *
+     * @param   string      $address_code
+     * @param   array       $properties
+     *
+     * @return  void
+     */
+    public function add_address (string $address_code, array $properties)
+    {
+        //  Load any existing addresses into the cache if they aren't already.
+        $this->get_addresses();
+        if ( array_key_exists($address_code, $this->_addresses) ) {
+            throw new RuntimeException(sprintf("Can't add address code \"%s\" to Customer %s because the address code already exists", $address_code, $this->_id));
+        }
+        $new_address = CustomerAddress::create($this->_id, $address_code, $properties);
+        $this->_addresses[$new_address->id] = $new_address;
     }
 
 }
