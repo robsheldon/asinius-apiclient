@@ -219,7 +219,14 @@ class CommonObject
                 throw new RuntimeException("Unsupported field map: $key");
             }
         }
-        $this->_properties[$key] = $value;
+        switch ($key) {
+            case 'id':
+                //  Read-only property.
+                break;
+            default:
+                $this->_properties[$key] = $value;
+                break;
+        }
         //  A cross-reference of mapped keys and value types is maintained here
         //  for use by the unmapped() function and inter-object data sharing.
         if ( ! array_key_exists($unmapped_key, static::$_maps_xref) ) {
@@ -270,6 +277,9 @@ class CommonObject
      */
     public function __get (string $property)
     {
+        if ( $property === 'id' ) {
+            return $this->_id;
+        }
         if ( array_key_exists($property, $this->_properties) ) {
             return $this->_properties[$property];
         }
