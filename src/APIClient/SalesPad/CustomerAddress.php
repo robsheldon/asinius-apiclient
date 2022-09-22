@@ -35,6 +35,55 @@
 *                                                                              *
 *******************************************************************************/
 
+/*
+    Example CustomerAddress record:
+          Customer_Num: "000016"
+          Address_Code: "PRIMARY"
+           Address_Use: ""
+       Sales_Person_ID: ""
+       Shipping_Method: ""
+              UPS_Zone: ""
+          Tax_Schedule: ""
+      Alt_Company_Name: "Rob Sheldon"
+        Contact_Person: ""
+        Address_Line_1: ""
+        Address_Line_2: ""
+        Address_Line_3: ""
+               Country: ""
+          Country_Code: ""
+                  City: ""
+                 State: ""
+                   Zip: ""
+               Phone_1: ""
+               Phone_2: ""
+               Phone_3: ""
+                   Fax: ""
+           Modified_On: "1900-01-01T00:00:00.000"
+            Created_On: "2022-09-22T00:00:00.000-04:00"
+               Comment: ""
+                 Email: ""
+              Email_To: ""
+              Email_CC: ""
+             Email_BCC: ""
+              Web_Site: ""
+                 Login: ""
+              Password: ""
+        Warehouse_Code: ""
+              USERDEF1: ""
+              USERDEF2: ""
+            Dont_Email: bool(false)
+             Dont_Mail: bool(false)
+       Sales_Territory: ""
+              Dont_Fax: bool(false)
+     Address_Validated: bool(false)
+Address_Classification: ""
+       File_Location_1: ""
+       File_Location_2: ""
+            DEX_ROW_TS: "2022-09-22T20:56:39.110"
+         Notifications: []
+             xShowroom: bool(false)
+ */
+
 namespace Asinius\APIClient\SalesPad;
 
 use RuntimeException;
